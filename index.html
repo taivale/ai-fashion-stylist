@@ -1,0 +1,951 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
+<meta name="theme-color" content="#2A1F1B"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<meta name="apple-mobile-web-app-title" content="Fashion Stylist"/>
+<title>AI Fashion Stylist</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+
+<style>
+/* ── RESET & BASE ── */
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;overflow:hidden}
+body{
+  font-family:'DM Sans',-apple-system,BlinkMacSystemFont,sans-serif;
+  background:#F7F4F0;color:#1A1410;
+  -webkit-font-smoothing:antialiased;
+}
+:root{
+  --bg:#F7F4F0;--sf:#FFFFFF;--sfAlt:#EFE9E2;
+  --tx:#1A1410;--txS:#7A6A5E;--txM:#B0A49A;
+  --ac:#B8825A;--acD:#96623A;--acL:#F2E6D8;
+  --bd:#E2D5C8;--ok:#5A9870;--err:#C04040;
+  --night:#2A1F1B;
+  --serif:'Playfair Display',Georgia,serif;
+  --sans:'DM Sans',-apple-system,sans-serif;
+  --safe-bottom:env(safe-area-inset-bottom,0px);
+}
+
+/* ── ANIMATIONS ── */
+@keyframes spin   {to{transform:rotate(360deg)}}
+@keyframes fadeUp {from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
+@keyframes fadeIn {from{opacity:0}to{opacity:1}}
+@keyframes slideUp{from{opacity:0;transform:translateY(100%)}to{opacity:1;transform:translateY(0)}}
+@keyframes pop    {0%{transform:scale(1)}50%{transform:scale(1.14)}100%{transform:scale(1)}}
+@keyframes pulse  {0%,100%{opacity:1}50%{opacity:.4}}
+
+/* ── SCROLLBARS ── */
+::-webkit-scrollbar{width:0;height:3px}
+::-webkit-scrollbar-thumb{background:var(--bd);border-radius:4px}
+
+/* ── LAYOUT ── */
+#app{
+  max-width:430px;margin:0 auto;
+  height:100vh;height:100dvh;
+  display:flex;flex-direction:column;
+  overflow:hidden;position:relative;
+  background:var(--bg);
+}
+#header{
+  background:linear-gradient(160deg,var(--night) 0%,#3A2818 60%,var(--ac) 100%);
+  padding:16px 18px 14px;
+  padding-top:calc(16px + env(safe-area-inset-top,0px));
+  flex-shrink:0;position:relative;z-index:50;
+}
+#main{flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch}
+#nav{
+  background:var(--sf);
+  border-top:1px solid var(--bd);
+  display:flex;flex-shrink:0;
+  padding-bottom:calc(8px + var(--safe-bottom));
+  position:relative;z-index:50;
+}
+
+/* ── HEADER ── */
+.hdr-inner{display:flex;align-items:center;justify-content:space-between}
+.logo{display:flex;align-items:center;gap:8px}
+.logo-star{color:var(--ac);font-size:17px;line-height:1}
+.logo-text{font-family:var(--serif);font-size:20px;font-weight:700;color:#FFF;letter-spacing:.3px}
+.hdr-add{width:36px;height:36px;border-radius:50%;background:var(--ac);color:#FFF;border:none;display:flex;align-items:center;justify-content:center;font-size:22px;line-height:1;box-shadow:0 3px 12px rgba(184,130,90,.5);cursor:pointer}
+
+/* ── NAV ── */
+.nav-btn{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;padding:10px 4px 6px;background:none;border:none;color:var(--txM);font-size:10px;font-weight:400;cursor:pointer;transition:color .2s;font-family:var(--sans)}
+.nav-btn.active{color:var(--ac)}
+.nav-btn svg{display:block}
+
+/* ── SCREEN ── */
+.screen{padding:16px 16px 24px;animation:fadeUp .4s ease}
+
+/* ── CARDS ── */
+.card{background:var(--sf);border-radius:14px;box-shadow:0 2px 10px rgba(26,20,16,.05)}
+.card-p{padding:18px}
+
+/* ── BUTTONS ── */
+.btn-primary{
+  width:100%;padding:16px;border-radius:50px;border:none;
+  background:linear-gradient(135deg,var(--ac),var(--acD));
+  color:#FFF;font-size:15px;font-weight:700;font-family:var(--sans);
+  cursor:pointer;letter-spacing:.3px;
+  box-shadow:0 5px 18px rgba(184,130,90,.4);
+  transition:opacity .2s;
+}
+.btn-primary:disabled{background:var(--bd);color:var(--txM);box-shadow:none;cursor:not-allowed}
+.btn-outline{
+  width:100%;padding:14px;border-radius:50px;
+  border:1.5px solid var(--ac);background:none;
+  color:var(--ac);font-size:14px;font-weight:600;font-family:var(--sans);cursor:pointer;
+}
+.btn-ghost{background:none;border:none;color:var(--txS);font-family:var(--sans);cursor:pointer;font-size:13px}
+
+/* ── CHIPS ── */
+.chip{
+  padding:7px 14px;border-radius:20px;
+  border:1.5px solid var(--bd);background:var(--sf);
+  color:var(--txS);font-size:13px;font-family:var(--sans);
+  cursor:pointer;white-space:nowrap;transition:all .15s;
+}
+.chip.on{background:var(--ac);color:#FFF;border-color:var(--ac);font-weight:600}
+
+/* ── TAGS ── */
+.tag{font-size:11px;padding:3px 8px;background:var(--sfAlt);border-radius:20px;color:var(--txS)}
+
+/* ── SPINNER ── */
+.spinner{
+  border:3px solid var(--bd);border-top-color:var(--ac);
+  border-radius:50%;animation:spin .85s linear infinite;flex-shrink:0;
+}
+
+/* ── MODAL ── */
+.modal-overlay{
+  position:fixed;inset:0;background:rgba(26,20,16,.55);
+  backdrop-filter:blur(4px);display:flex;flex-direction:column;
+  justify-content:flex-end;z-index:200;
+}
+.modal-sheet{
+  background:var(--sf);border-radius:22px 22px 0 0;
+  max-height:93vh;overflow-y:auto;-webkit-overflow-scrolling:touch;
+  animation:slideUp .32s cubic-bezier(.32,.72,0,1);
+}
+.modal-handle{width:36px;height:4px;border-radius:2px;background:var(--bd);margin:14px auto 0}
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="header">
+    <div class="hdr-inner">
+      <div class="logo">
+        <span class="logo-star">✦</span>
+        <span class="logo-text" id="hdr-title">Meu Guarda-Roupa</span>
+      </div>
+      <button class="hdr-add" id="hdr-add-btn" onclick="openUpload()" title="Adicionar peça">+</button>
+    </div>
+  </div>
+
+  <main id="main"></main>
+
+  <nav id="nav">
+    <button class="nav-btn active" id="nav-wardrobe" onclick="goTab('wardrobe')">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="12" y1="3" x2="12" y2="21"/><circle cx="9" cy="9" r="1" fill="currentColor"/><circle cx="15" cy="9" r="1" fill="currentColor"/></svg>
+      Guarda-Roupa
+    </button>
+    <button class="nav-btn" id="nav-stylist" onclick="goTab('stylist')">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l2.9 6.3L22 9.3l-5 4.9 1.2 6.9L12 17.8l-6.2 3.3L7 14.2 2 9.3l7.1-1L12 2z"/></svg>
+      Stylist
+    </button>
+    <button class="nav-btn" id="nav-cores" onclick="goTab('cores')">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 2a10 10 0 0 1 0 20"/><circle cx="12" cy="12" r="3"/></svg>
+      Cores
+    </button>
+    <button class="nav-btn" id="nav-onboarding" onclick="goTab('onboarding')">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+      Início Rápido
+    </button>
+  </nav>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<!-- MODAL DE UPLOAD                                                -->
+<!-- ═══════════════════════════════════════════════════════════════ -->
+<div id="upload-modal" class="modal-overlay" style="display:none" onclick="closeUploadIfBg(event)">
+  <div class="modal-sheet" id="upload-sheet">
+    <div class="modal-handle"></div>
+    <div id="upload-content"></div>
+  </div>
+</div>
+
+<script>
+// ════════════════════════════════════════════════════════════════
+// ESTADO GLOBAL
+// ════════════════════════════════════════════════════════════════
+let STATE = {
+  tab: 'wardrobe',
+  garments: [],
+  uploadStep: 'capture', // capture | classifying | review | saving
+  uploadFile: null,
+  uploadImageUrl: null,
+  uploadCls: null,
+  stylistPhase: 'input',
+  stylistOcasiao: '',
+  stylistClima: '',
+  stylistLooks: [],
+  stylistActive: 0,
+  stylistLiked: new Set(),
+  coresTab: 'paleta',
+  coresGrupo: 'Todos',
+  coresSelected: null,
+  coresHarmonia: 'colorBlocking',
+  builderCores: [],
+  onbStep: 'intro',
+  onbSelecoes: {},
+  onbCatAtiva: 'Tops',
+  onbExpanded: null,
+};
+
+// Carrega do localStorage
+try { STATE.garments = JSON.parse(localStorage.getItem('fs_garments')||'[]'); } catch{}
+
+function save() { localStorage.setItem('fs_garments', JSON.stringify(STATE.garments)); }
+
+// ════════════════════════════════════════════════════════════════
+// DADOS
+// ════════════════════════════════════════════════════════════════
+const OPCOES = {
+  tipo:    ['Blusa','Camisa','Camiseta','Regata','Blazer','Jaqueta','Casaco','Cardigan','Vestido','Saia','Calça','Short','Bermuda','Macacão','Sapato','Sandália','Tênis','Bota','Bolsa','Cinto','Acessório'],
+  cor:     ['Preto','Branco','Off-white','Bege','Caramelo','Marrom','Cinza','Azul-marinho','Azul-claro','Jeans','Verde-escuro','Verde-oliva','Vermelho','Bordô','Rosa','Lilás','Amarelo','Mostarda','Laranja','Coral','Terracota','Dourado','Prateado'],
+  estilo:  ['Casual','Elegante','Clássico','Moderno','Romântico','Esportivo','Minimalista','Sofisticado','Casual elegante'],
+  ocasiao: ['Trabalho','Casual dia a dia','Jantar','Festa','Praia/Piscina','Viagem','Evento formal','Happy hour','Reunião','Final de semana'],
+  clima:   ['Quente','Ameno','Frio','Chuva'],
+};
+const CLIMA_ICON = {Quente:'☀️',Ameno:'🌤',Frio:'🧊',Chuva:'🌧'};
+const MOOD_STYLE = {
+  'Clássico':       {bg:'#F0EDE8',tx:'#6B5E4E'},
+  'Casual elegante':{bg:'#F2E6D8',tx:'#96623A'},
+  'Elegante':       {bg:'#EBE8F0',tx:'#5E4E6B'},
+  'Moderno':        {bg:'#E8EEF0',tx:'#3D5A6B'},
+  'Casual':         {bg:'#EAF0E8',tx:'#4B6B4E'},
+};
+
+// Pantone SS2026
+const PANTONE = [
+  {id:'p01',nome:'Tickled Pink',   hex:'#F4A7B0',grupo:'Rosa'},
+  {id:'p02',nome:'Amethyst Orchid',hex:'#9B7BB8',grupo:'Roxo'},
+  {id:'p03',nome:'Caramel',        hex:'#B8783A',grupo:'Terroso'},
+  {id:'p04',nome:'Dutch Canal',    hex:'#8FA8C8',grupo:'Azul'},
+  {id:'p05',nome:'Shale Green',    hex:'#7A8C6A',grupo:'Verde'},
+  {id:'p06',nome:'Burnished Lilac',hex:'#C4A8B8',grupo:'Rosa'},
+  {id:'p07',nome:'Teaberry',       hex:'#C84060',grupo:'Vermelho'},
+  {id:'p08',nome:'Pale Banana',    hex:'#F0E080',grupo:'Amarelo'},
+  {id:'p09',nome:'Mandarin Orange',hex:'#E87840',grupo:'Laranja'},
+  {id:'p10',nome:'Amaranth',       hex:'#7A2848',grupo:'Vinho'},
+  {id:'p11',nome:'Palm',           hex:'#A8B840',grupo:'Verde'},
+  {id:'p12',nome:'Evening Blue',   hex:'#2A3050',grupo:'Azul'},
+  {id:'p13',nome:'Choc. Truffle',  hex:'#5A2830',grupo:'Marrom'},
+  {id:'p14',nome:'Ether',          hex:'#A8C4C8',grupo:'Azul'},
+  {id:'p15',nome:'White Onyx',     hex:'#E8E4DC',grupo:'Neutro'},
+  {id:'p16',nome:'Angora',         hex:'#D8C8B0',grupo:'Neutro'},
+  {id:'p17',nome:'Ultra Violet',   hex:'#702082',grupo:'Roxo'},
+  {id:'p18',nome:'Green Olive',    hex:'#6B7040',grupo:'Verde'},
+  {id:'p19',nome:'Mocha Mousse',   hex:'#A07850',grupo:'Terroso'},
+  {id:'p20',nome:'Butter Yellow',  hex:'#FCE8A8',grupo:'Amarelo'},
+  {id:'p21',nome:'Celadon',        hex:'#A8C8B0',grupo:'Verde'},
+  {id:'p22',nome:'Leather Brown',  hex:'#8B4820',grupo:'Marrom'},
+  {id:'p23',nome:'All Aboard',     hex:'#5080B8',grupo:'Azul'},
+  {id:'p24',nome:'Nantucket',      hex:'#A0C0D8',grupo:'Azul'},
+  {id:'p25',nome:'Pink Marsh.',    hex:'#F8D0D8',grupo:'Rosa'},
+  {id:'p26',nome:'Choc. Dark',     hex:'#4F2C1D',grupo:'Marrom'},
+  {id:'p27',nome:'Blood Red',      hex:'#7A1820',grupo:'Vermelho'},
+  {id:'p28',nome:'Ultimate Gray',  hex:'#939597',grupo:'Neutro'},
+  {id:'p29',nome:'Neon Navy',      hex:'#1A2050',grupo:'Azul'},
+];
+
+const HARMONIAS = {
+  colorBlocking:{label:'Color Blocking',icon:'▦',desc:'Blocos sólidos SS 2026',
+    grupos:[['Teaberry','Dutch Canal','Pale Banana'],['Amethyst Orchid','Palm','Mandarin Orange'],['Tickled Pink','Evening Blue','Pale Banana'],['Ultra Violet','Butter Yellow','All Aboard'],['Blood Red','Celadon','Butter Yellow']]},
+  analogas:{label:'Análogas',icon:'〰',desc:'Cores vizinhas — sempre seguras',
+    grupos:[['Tickled Pink','Burnished Lilac','Amethyst Orchid'],['Dutch Canal','Ether','Nantucket'],['Caramel','Mocha Mousse','Angora'],['Palm','Shale Green','Green Olive']]},
+  complementares:{label:'Complement.',icon:'⊕',desc:'Opostos — contraste e energia',
+    grupos:[['Teaberry','Shale Green'],['Amethyst Orchid','Pale Banana'],['Mandarin Orange','Dutch Canal'],['Ultra Violet','Butter Yellow']]},
+  monocromatico:{label:'Mono.',icon:'◧',desc:'Tons da mesma família',
+    grupos:[['Pink Marsh.','Tickled Pink','Burnished Lilac'],['Butter Yellow','Pale Banana','Angora'],['Ether','Dutch Canal','All Aboard','Evening Blue'],['Angora','White Onyx','Mocha Mousse']]},
+  neutroDestaque:{label:'Neutro+Cor',icon:'◉',desc:'Base neutra + um ponto de cor',
+    grupos:[['White Onyx','Angora','Teaberry'],['Ultimate Gray','Evening Blue','Tickled Pink'],['Choc. Truffle','White Onyx','Dutch Canal'],['Angora','Mocha Mousse','Amethyst Orchid']]},
+};
+
+// Catálogo de peças preset para onboarding
+const CATALOG = [
+  {id:'base_tshirt',    label:'T-shirt',       cat:'Tops',     tipo:'Camiseta', estilo:'Casual',          ocasioes:['Casual dia a dia','Final de semana'],  clima:['Quente','Ameno'], shape:'tshirt',
+   cores:['Branco','Preto','Cinza','Off-white','Azul-marinho','Terracota','Verde-oliva']},
+  {id:'base_camisa',    label:'Camisa Linho',  cat:'Tops',     tipo:'Camisa',   estilo:'Casual elegante', ocasioes:['Casual dia a dia','Jantar','Trabalho'], clima:['Quente','Ameno'], shape:'camisa',
+   cores:['Branco','Off-white','Bege','Azul-claro','Verde-oliva','Amarelo']},
+  {id:'base_blazer',    label:'Blazer',        cat:'Tops',     tipo:'Blazer',   estilo:'Elegante',        ocasioes:['Trabalho','Jantar','Reunião'],          clima:['Ameno','Frio'],   shape:'blazer',
+   cores:['Preto','Bege','Caramelo','Cinza','Azul-marinho','Off-white']},
+  {id:'base_blusa',     label:'Blusa Básica',  cat:'Tops',     tipo:'Blusa',    estilo:'Minimalista',     ocasioes:['Trabalho','Casual dia a dia'],          clima:['Quente','Ameno'], shape:'blusa',
+   cores:['Branco','Preto','Bege','Cinza','Bordô','Azul-marinho']},
+  {id:'base_jeans',     label:'Calça Jeans',   cat:'Bottoms',  tipo:'Calça',    estilo:'Casual',          ocasioes:['Casual dia a dia','Passeio','Trabalho'],clima:['Ameno','Frio'],   shape:'calca',
+   cores:['Jeans','Preto','Branco','Cinza']},
+  {id:'base_flair',     label:'Calça Flair',   cat:'Bottoms',  tipo:'Calça',    estilo:'Moderno',         ocasioes:['Trabalho','Jantar','Happy hour'],       clima:['Ameno','Frio'],   shape:'calca_flair',
+   cores:['Preto','Caramelo','Bege','Cinza','Azul-marinho']},
+  {id:'base_bermuda',   label:'Bermuda Linho', cat:'Bottoms',  tipo:'Bermuda',  estilo:'Casual',          ocasioes:['Casual dia a dia','Praia/Piscina'],     clima:['Quente'],         shape:'bermuda',
+   cores:['Bege','Branco','Azul-claro','Verde-oliva','Terracota']},
+  {id:'base_saia',      label:'Saia Midi',     cat:'Bottoms',  tipo:'Saia',     estilo:'Elegante',        ocasioes:['Trabalho','Jantar','Evento formal'],    clima:['Quente','Ameno'], shape:'saia',
+   cores:['Preto','Caramelo','Bege','Verde-escuro','Bordô','Terracota']},
+  {id:'base_vest_cas',  label:'Vestido Casual',cat:'Vestidos', tipo:'Vestido',  estilo:'Casual elegante', ocasioes:['Casual dia a dia','Passeio','Jantar'],  clima:['Quente','Ameno'], shape:'vestido',
+   cores:['Preto','Branco','Off-white','Terracota','Azul-marinho','Rosa']},
+  {id:'base_vest_eleg', label:'Vestido Elegante',cat:'Vestidos',tipo:'Vestido', estilo:'Elegante',        ocasioes:['Jantar','Festa','Evento formal'],       clima:['Quente','Ameno'], shape:'vestido_eleg',
+   cores:['Preto','Azul-marinho','Bordô','Verde-escuro','Off-white']},
+  {id:'base_tenis',     label:'Tênis',         cat:'Calçados', tipo:'Tênis',    estilo:'Casual',          ocasioes:['Casual dia a dia','Passeio'],           clima:['Quente','Ameno'], shape:'tenis',
+   cores:['Branco','Preto','Cinza','Bege']},
+  {id:'base_sandalia',  label:'Sandália',      cat:'Calçados', tipo:'Sandália', estilo:'Casual elegante', ocasioes:['Casual dia a dia','Jantar','Happy hour'],clima:['Quente','Ameno'],shape:'sandalia',
+   cores:['Dourado','Preto','Bege','Caramelo','Branco']},
+  {id:'base_scarpin',   label:'Scarpin',       cat:'Calçados', tipo:'Sapato',   estilo:'Elegante',        ocasioes:['Trabalho','Jantar','Evento formal'],    clima:['Ameno'],          shape:'scarpin',
+   cores:['Preto','Bege','Caramelo','Dourado']},
+  {id:'base_bota',      label:'Bota',          cat:'Calçados', tipo:'Bota',     estilo:'Clássico',        ocasioes:['Trabalho','Casual dia a dia','Viagem'], clima:['Frio','Ameno'],   shape:'bota',
+   cores:['Preto','Caramelo','Marrom','Bege']},
+  {id:'base_cardigan',  label:'Cardigan',      cat:'Camadas',  tipo:'Cardigan', estilo:'Casual',          ocasioes:['Casual dia a dia','Trabalho'],          clima:['Frio','Ameno'],   shape:'cardigan',
+   cores:['Bege','Off-white','Cinza','Caramelo','Preto','Verde-oliva']},
+  {id:'base_jaqueta',   label:'Jaqueta Jeans', cat:'Camadas',  tipo:'Jaqueta',  estilo:'Casual',          ocasioes:['Casual dia a dia','Passeio'],           clima:['Ameno','Frio'],   shape:'jaqueta',
+   cores:['Jeans','Preto','Azul-claro']},
+];
+const CATS = ['Tops','Bottoms','Vestidos','Calçados','Camadas'];
+
+const COR_HEX = {
+  'Branco':'#FFFFFF','Preto':'#1A1A1A','Cinza':'#9E9E9E','Off-white':'#F5F0E8',
+  'Bege':'#D4B896','Caramelo':'#B8783A','Marrom':'#7B4F2E','Jeans':'#4A6FA5',
+  'Azul-marinho':'#1E3A5F','Azul-claro':'#7EB8D4','Verde-oliva':'#7A8C4A',
+  'Verde-escuro':'#2E5440','Vermelho':'#C04040','Bordô':'#7A2035',
+  'Rosa':'#E8A0A0','Lilás':'#B89EC8','Amarelo':'#E8D060','Mostarda':'#C8A030',
+  'Laranja':'#E87840','Coral':'#E87060','Terracota':'#B86040',
+  'Dourado':'#C8A848','Prateado':'#B0B8C0',
+};
+
+// ════════════════════════════════════════════════════════════════
+// HELPERS
+// ════════════════════════════════════════════════════════════════
+const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2,5);
+const delay = ms => new Promise(r=>setTimeout(r,ms));
+const $ = id => document.getElementById(id);
+const isLight = hex => {
+  const r=parseInt(hex.slice(1,3),16),g=parseInt(hex.slice(3,5),16),b=parseInt(hex.slice(5,7),16);
+  return (r*299+g*587+b*114)/1000>155;
+};
+const textOn = hex => isLight(hex)?'rgba(0,0,0,0.75)':'rgba(255,255,255,0.9)';
+
+function chips(items, selected, onclick, multi=false) {
+  return items.map(v => {
+    const on = multi ? selected.includes(v) : selected===v;
+    return `<button class="chip ${on?'on':''}" onclick="${onclick}('${v}')">${v}</button>`;
+  }).join('');
+}
+
+function garmentSVG(shape, fill, size=80) {
+  const s = fill||'#D4B896';
+  const sk = '#00000018';
+  const w = size, h = size;
+  const svgOpen = `<svg width="${w}" height="${h}" viewBox="0 0 100 100" style="display:block">`;
+  const paths = {
+    tshirt:`<path d="M25 20 L15 35 L28 38 L28 80 L72 80 L72 38 L85 35 L75 20 L63 28 C60 18 40 18 37 28 Z" fill="${s}" stroke="${sk}" stroke-width="1.5" stroke-linejoin="round"/>`,
+    camisa:`<path d="M25 18 L14 34 L27 38 L27 82 L73 82 L73 38 L86 34 L75 18 L65 26 C62 16 38 16 35 26 Z" fill="${s}" stroke="${sk}" stroke-width="1.5" stroke-linejoin="round"/><line x1="50" y1="26" x2="50" y2="56" stroke="${sk}" stroke-width="1.2"/>`,
+    blazer:`<path d="M24 16 L14 36 L27 40 L27 85 L50 78 L73 85 L73 40 L86 36 L76 16 L62 30 L56 22 L50 30 L44 22 L38 30 Z" fill="${s}" stroke="${sk}" stroke-width="1.5" stroke-linejoin="round"/><path d="M50 30 L50 85" stroke="${sk}" stroke-width="1"/>`,
+    blusa:`<path d="M30 22 Q50 14 70 22 L78 42 L65 40 L65 82 L35 82 L35 40 L22 42 Z" fill="${s}" stroke="${sk}" stroke-width="1.5" stroke-linejoin="round"/>`,
+    calca:`<path d="M25 12 L20 55 L30 90 L50 82 L50 12 Z" fill="${s}" stroke="${sk}" stroke-width="1.5" stroke-linejoin="round"/><path d="M75 12 L80 55 L70 90 L50 82 L50 12 Z" fill="${s}" stroke="${sk}" stroke-width="1.5" stroke-linejoin="round"/><line x1="25" y1="12" x2="75" y2="12" stroke="${sk}" stroke-width="1.5"/>`,
+    calca_flair:`<path d="M28 12 L22 55 L16 92 L50 84 L50 12 Z" fill="${s}" stroke="${sk}" stroke-width="1.5" stroke-linejoin="round"/><path d="M72 12 L78 55 L84 92 L50 84 L50 12 Z" fill="${s}" stroke="${sk}" stroke-width="1.5" stroke-linejoin="round"/><line x1="28" y1="12" x2="72" y2="12" stroke="${sk}" stroke-width="1.5"/>`,
+    bermuda:`<path d="M22 14 L18 58 L30 60 L50 54 L50 14 Z" fill="${s}" stroke="${sk}" stroke-width="1.5" stroke-linejoin="round"/><path d="M78 14 L82 58 L70 60 L50 54 L50 14 Z" fill="${s}" stroke="${sk}" stroke-width="1.5" stroke-linejoin="round"/><line x1="22" y1="14" x2="78" y2="14" stroke="${sk}" stroke-width="1.5"/>`,
+    saia:`<path d="M34 10 L66 10 L74 88 L26 88 Z" fill="${s}" stroke="${sk}" stroke-width="1.5" stroke-linejoin="round"/><line x1="30" y1="20" x2="70" y2="20" stroke="${sk}" stroke-width="1.2"/>`,
+    vestido:`<path d="M30 10 Q50 6 70 10 L78 32 L66 30 L68 88 L32 88 L34 30 L22 32 Z" fill="${s}" stroke="${sk}" stroke-width="1.5" stroke-linejoin="round"/>`,
+    vestido_eleg:`<path d="M36 8 Q50 4 64 8 L70 26 L64 24 L68 92 L32 92 L36 24 L30 26 Z" fill="${s}" stroke="${sk}" stroke-width="1.5" stroke-linejoin="round"/><line x1="44" y1="8" x2="44" y2="22" stroke="${sk}" stroke-width="1"/><line x1="56" y1="8" x2="56" y2="22" stroke="${sk}" stroke-width="1"/>`,
+    tenis:`<ellipse cx="50" cy="68" rx="34" ry="12" fill="${s}" stroke="${sk}" stroke-width="1.5"/><path d="M16 68 Q18 46 50 44 Q82 46 84 68" fill="${s}" stroke="${sk}" stroke-width="1.5"/><path d="M32 60 L56 52" stroke="${sk}" stroke-width="1.2"/>`,
+    sandalia:`<ellipse cx="50" cy="72" rx="32" ry="8" fill="${s}" stroke="${sk}" stroke-width="1.5"/><path d="M28 72 L32 36 L44 40 L50 30 L56 40 L68 36 L72 72" fill="none" stroke="${s}" stroke-width="5" stroke-linecap="round"/><path d="M28 72 L32 36 L44 40 L50 30 L56 40 L68 36 L72 72" fill="none" stroke="${sk}" stroke-width="1.5" stroke-linecap="round"/>`,
+    scarpin:`<ellipse cx="44" cy="74" rx="28" ry="8" fill="${s}" stroke="${sk}" stroke-width="1.5"/><path d="M16 74 Q18 54 34 48 L50 42 Q62 36 70 44 L72 52 L56 48 Q44 52 40 62 L16 74" fill="${s}" stroke="${sk}" stroke-width="1.5" stroke-linejoin="round"/><line x1="70" y1="48" x2="74" y2="82" stroke="${s}" stroke-width="6" stroke-linecap="round"/><line x1="70" y1="48" x2="74" y2="82" stroke="${sk}" stroke-width="1.5" stroke-linecap="round"/>`,
+    bota:`<rect x="28" y="10" width="22" height="52" rx="4" fill="${s}" stroke="${sk}" stroke-width="1.5"/><path d="M28 58 L24 74 L76 74 L76 66 L50 66 L50 58 Z" fill="${s}" stroke="${sk}" stroke-width="1.5" stroke-linejoin="round"/>`,
+    cardigan:`<path d="M26 16 L14 34 L28 38 L28 84 L50 78 L72 84 L72 38 L86 34 L74 16 L62 28 L50 36 L38 28 Z" fill="${s}" stroke="${sk}" stroke-width="1.5" stroke-linejoin="round"/>`,
+    jaqueta:`<path d="M26 16 L14 34 L28 38 L28 80 L72 80 L72 38 L86 34 L74 16 L62 26 L50 20 L38 26 Z" fill="${s}" stroke="${sk}" stroke-width="1.5" stroke-linejoin="round"/><line x1="50" y1="20" x2="50" y2="80" stroke="${sk}" stroke-width="1.2"/>`,
+  };
+  return svgOpen + (paths[shape]||paths.tshirt) + '</svg>';
+}
+
+// ════════════════════════════════════════════════════════════════
+// NAVEGAÇÃO
+// ════════════════════════════════════════════════════════════════
+function goTab(tab) {
+  STATE.tab = tab;
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  $('nav-'+tab)?.classList.add('active');
+  const titles = {wardrobe:'Meu Guarda-Roupa',stylist:'Stylist IA',cores:'Módulo de Cores',onboarding:'Início Rápido'};
+  $('hdr-title').textContent = titles[tab]||'';
+  $('hdr-add-btn').style.display = tab==='wardrobe'?'flex':'none';
+  renderMain();
+}
+
+// ════════════════════════════════════════════════════════════════
+// RENDER PRINCIPAL
+// ════════════════════════════════════════════════════════════════
+function renderMain() {
+  const main = $('main');
+  const renders = {wardrobe:renderWardrobe, stylist:renderStylist, cores:renderCores, onboarding:renderOnboarding};
+  main.innerHTML = (renders[STATE.tab]||renderWardrobe)();
+}
+
+// ════════════════════════════════════════════════════════════════
+// GUARDA-ROUPA
+// ════════════════════════════════════════════════════════════════
+function renderWardrobe() {
+  const g = STATE.garments;
+  if (!g.length) return `
+    <div class="screen" style="display:flex;flex-direction:column;align-items:center;text-align:center;padding:60px 24px">
+      <div style="width:80px;height:80px;border-radius:50%;background:var(--acL);display:flex;align-items:center;justify-content:center;margin:0 0 20px;font-size:36px">👗</div>
+      <h3 style="font-family:var(--serif);font-size:22px;font-weight:700;margin-bottom:8px">Guarda-roupa vazio</h3>
+      <p style="font-size:14px;color:var(--txS);line-height:1.6;margin-bottom:28px;max-width:240px">Adicione peças pelo <strong>Início Rápido</strong> ou fotografe suas roupas tocando no <strong>+</strong></p>
+      <button class="btn-primary" style="width:auto;padding:14px 28px;font-size:14px" onclick="goTab('onboarding')">✦ Início Rápido</button>
+    </div>`;
+
+  const types = [...new Set(g.map(x=>x.tipo))].slice(0,8);
+  const filt = STATE.wFilt||'';
+  const list = filt ? g.filter(x=>x.tipo===filt||x.cor===filt) : g;
+
+  return `
+    <div class="screen">
+      <div style="display:flex;gap:10px;margin-bottom:14px">
+        <div class="card" style="flex:1;padding:14px 16px;text-align:center">
+          <span style="font-family:var(--serif);font-size:28px;font-weight:700;color:var(--ac);display:block">${g.length}</span>
+          <span style="font-size:11px;color:var(--txS)">peças</span>
+        </div>
+        <div class="card" style="flex:1;padding:14px 16px;text-align:center">
+          <span style="font-family:var(--serif);font-size:28px;font-weight:700;color:var(--ac);display:block">${g.length>=3?Math.floor(g.length*2.7):0}</span>
+          <span style="font-size:11px;color:var(--txS)">looks possíveis</span>
+        </div>
+      </div>
+      ${types.length>1?`<div style="display:flex;gap:6px;overflow-x:auto;margin-bottom:14px;padding-bottom:4px">
+        <button class="chip ${!filt?'on':''}" onclick="setWFilt('')">Tudo</button>
+        ${types.map(t=>`<button class="chip ${filt===t?'on':''}" onclick="setWFilt('${t}')">${t}</button>`).join('')}
+      </div>`:''}
+      <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:10px">
+        ${list.map((g,i)=>`
+          <div class="card" style="overflow:hidden;animation:fadeUp .35s ease ${i*50}ms both;cursor:pointer" onclick="toggleDelete('${g.id}')">
+            <div style="aspect-ratio:3/4;background:var(--sfAlt);position:relative;overflow:hidden">
+              ${g.imageUrl?`<img src="${g.imageUrl}" style="width:100%;height:100%;object-fit:cover;display:block" onerror="this.style.display='none'">`:`<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center">${g.shape?garmentSVG(g.shape,COR_HEX[g.cor],80):'<span style="font-size:32px">🧥</span>'}</div>`}
+              ${STATE.deleteId===g.id?`<div style="position:absolute;inset:0;background:rgba(26,20,16,.65);display:flex;align-items:center;justify-content:center;animation:fadeIn .15s ease">
+                <button onclick="removeGarment('${g.id}');event.stopPropagation()" style="padding:10px 20px;border-radius:50px;background:var(--err);color:#FFF;border:none;font-size:13px;font-weight:700;font-family:var(--sans);cursor:pointer">🗑 Remover</button>
+              </div>`:''}
+            </div>
+            <div style="padding:10px 12px 12px">
+              <span style="font-size:13px;font-weight:700;display:block;margin-bottom:5px">${g.tipo}</span>
+              <div style="display:flex;gap:5px;flex-wrap:wrap"><span class="tag">${g.cor}</span><span class="tag">${g.estilo}</span></div>
+            </div>
+          </div>`).join('')}
+      </div>
+    </div>`;
+}
+
+function setWFilt(v){STATE.wFilt=v;renderMain()}
+function toggleDelete(id){STATE.deleteId=STATE.deleteId===id?null:id;renderMain()}
+function removeGarment(id){STATE.garments=STATE.garments.filter(g=>g.id!==id);STATE.deleteId=null;save();renderMain()}
+
+// ════════════════════════════════════════════════════════════════
+// UPLOAD FLOW
+// ════════════════════════════════════════════════════════════════
+function openUpload(){STATE.uploadStep='capture';STATE.uploadFile=null;STATE.uploadImageUrl=null;STATE.uploadCls=null;renderUpload();$('upload-modal').style.display='flex'}
+function closeUpload(){$('upload-modal').style.display='none'}
+function closeUploadIfBg(e){if(e.target===$('upload-modal')&&STATE.uploadStep==='capture')closeUpload()}
+
+const DEMO_URLS=[
+  'https://images.unsplash.com/photo-1594938298603-c8148c4dae35?w=300&h=380&fit=crop',
+  'https://images.unsplash.com/photo-1558171813-4c088753af8f?w=300&h=380&fit=crop',
+  'https://images.unsplash.com/photo-1551488831-00ddcb6c6bd3?w=300&h=380&fit=crop',
+  'https://images.unsplash.com/photo-1583743814966-8936f5b7be1a?w=300&h=380&fit=crop',
+  'https://images.unsplash.com/photo-1562157873-818bc0726f68?w=300&h=380&fit=crop',
+];
+
+function renderUpload(){
+  const step=STATE.uploadStep;
+  let html='<div class="modal-handle"></div>';
+  if(step==='capture'){
+    html+=`<div style="padding:20px 20px 40px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+        <h3 style="font-family:var(--serif);font-size:22px;font-weight:700">Nova Peça</h3>
+        <button onclick="closeUpload()" style="background:none;border:none;color:var(--txS);font-size:24px;line-height:1;cursor:pointer">×</button>
+      </div>
+      <label style="display:block;border:2px dashed var(--bd);border-radius:16px;padding:40px 20px;text-align:center;cursor:pointer" for="file-input">
+        <div style="font-size:40px;margin-bottom:12px">📷</div>
+        <p style="font-size:15px;font-weight:600;margin-bottom:4px">Fotografar ou escolher da galeria</p>
+        <p style="font-size:12px;color:var(--txM)">Dica: fundo claro para melhor resultado</p>
+        <input id="file-input" type="file" accept="image/*" capture="environment" style="display:none" onchange="handleFileInput(event)">
+      </label>
+      <p style="font-size:12px;color:var(--txM);text-align:center;margin:16px 0 10px">ou use uma imagem de exemplo:</p>
+      <div style="display:flex;gap:8px;overflow-x:auto;padding-bottom:4px">
+        ${DEMO_URLS.map((url,i)=>`<div onclick="useDemo('${url}')" style="width:64px;height:80px;border-radius:10px;overflow:hidden;flex-shrink:0;cursor:pointer;border:2px solid var(--bd)"><img src="${url}" style="width:100%;height:100%;object-fit:cover"></div>`).join('')}
+      </div>
+    </div>`;
+  } else if(step==='classifying'){
+    html+=`<div style="padding:60px 24px;display:flex;flex-direction:column;align-items:center;gap:14px">
+      ${STATE.uploadImageUrl?`<img src="${STATE.uploadImageUrl}" style="width:90px;height:116px;object-fit:cover;border-radius:12px;opacity:.7">`:''}
+      <div class="spinner" style="width:40px;height:40px"></div>
+      <p style="font-family:var(--serif);font-size:20px;font-weight:700">Analisando a peça...</p>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:center">
+        ${['tipo','cor','estilo','ocasiões'].map((l,i)=>`<span style="font-size:11px;padding:4px 10px;background:var(--sfAlt);border-radius:20px;color:var(--txS);animation:pulse 1.2s ease ${i*.3}s infinite">${l}</span>`).join('')}
+      </div>
+    </div>`;
+  } else if(step==='review'&&STATE.uploadCls){
+    const c=STATE.uploadCls;
+    html+=`<div style="padding:18px 18px 36px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+        <h3 style="font-family:var(--serif);font-size:20px;font-weight:700">Confirmar Classificação</h3>
+        <button onclick="closeUpload()" style="background:none;border:none;color:var(--txS);font-size:24px;line-height:1;cursor:pointer">×</button>
+      </div>
+      <div style="display:flex;gap:12px;align-items:flex-start;margin-bottom:16px">
+        <div style="width:84px;height:108px;border-radius:12px;overflow:hidden;background:var(--sfAlt);flex-shrink:0">
+          ${STATE.uploadImageUrl?`<img src="${STATE.uploadImageUrl}" style="width:100%;height:100%;object-fit:cover">`:''}
+        </div>
+        <div style="padding-top:4px">
+          <div style="display:inline-flex;align-items:center;gap:5px;padding:5px 12px;border-radius:20px;background:${c.confianca==='alta'?'#E8F5EE':'var(--acL)'};margin-bottom:8px">
+            <span style="font-size:12px;font-weight:700;color:${c.confianca==='alta'?'var(--ok)':'var(--ac)'}">${c.confianca==='alta'?'✓ Alta precisão':'⚠ Verifique os campos'}</span>
+          </div>
+          <p style="font-size:12px;color:var(--txS);line-height:1.5">Toque nas opções para corrigir qualquer campo.</p>
+        </div>
+      </div>
+      <div style="margin-bottom:16px">
+        <p style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.7px;color:var(--txS);margin-bottom:8px">Tipo</p>
+        <div style="display:flex;flex-wrap:wrap;gap:6px">${chips(OPCOES.tipo.slice(0,18),c.tipo,'setClsTipo')}</div>
+      </div>
+      <div style="margin-bottom:16px">
+        <p style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.7px;color:var(--txS);margin-bottom:8px">Cor</p>
+        <div style="display:flex;flex-wrap:wrap;gap:6px">${chips(OPCOES.cor,c.cor,'setClsCor')}</div>
+      </div>
+      <div style="margin-bottom:16px">
+        <p style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.7px;color:var(--txS);margin-bottom:8px">Estilo</p>
+        <div style="display:flex;flex-wrap:wrap;gap:6px">${chips(OPCOES.estilo,c.estilo,'setClsEstilo')}</div>
+      </div>
+      <div style="margin-bottom:20px">
+        <p style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.7px;color:var(--txS);margin-bottom:8px">Ocasiões</p>
+        <div style="display:flex;flex-wrap:wrap;gap:6px">${chips(OPCOES.ocasiao,c.ocasioes,'toggleClsOcasiao',true)}</div>
+      </div>
+      <button class="btn-primary" onclick="saveGarment()">✓ Salvar no Guarda-Roupa</button>
+    </div>`;
+  }
+  $('upload-content').innerHTML=html;
+}
+
+async function handleFileInput(e){
+  const f=e.target.files?.[0];if(!f)return;
+  STATE.uploadFile=f;
+  STATE.uploadImageUrl=URL.createObjectURL(f);
+  await classify();
+}
+
+async function useDemo(url){
+  STATE.uploadImageUrl=url;
+  STATE.uploadFile={name:'demo.jpg',type:'image/jpeg'};
+  await classify();
+}
+
+async function classify(){
+  STATE.uploadStep='classifying';renderUpload();
+  await delay(1800);
+  const tipos=OPCOES.tipo.slice(0,8),cores=OPCOES.cor.slice(0,10);
+  STATE.uploadCls={
+    tipo:tipos[Math.floor(Math.random()*tipos.length)],
+    cor:cores[Math.floor(Math.random()*cores.length)],
+    estilo:OPCOES.estilo[Math.floor(Math.random()*OPCOES.estilo.length)],
+    ocasioes:[OPCOES.ocasiao[0],OPCOES.ocasiao[1]],
+    confianca:'alta',
+  };
+  STATE.uploadStep='review';renderUpload();
+}
+
+function setClsTipo(v){STATE.uploadCls.tipo=v;renderUpload()}
+function setClsCor(v){STATE.uploadCls.cor=v;renderUpload()}
+function setClsEstilo(v){STATE.uploadCls.estilo=v;renderUpload()}
+function toggleClsOcasiao(v){
+  const oc=STATE.uploadCls.ocasioes;
+  STATE.uploadCls.ocasioes=oc.includes(v)?oc.filter(o=>o!==v):[...oc,v];
+  renderUpload();
+}
+
+function saveGarment(){
+  const g={id:uid(),tipo:STATE.uploadCls.tipo,cor:STATE.uploadCls.cor,estilo:STATE.uploadCls.estilo,ocasioes:STATE.uploadCls.ocasioes,imageUrl:STATE.uploadImageUrl,createdAt:new Date().toISOString()};
+  STATE.garments.unshift(g);save();
+  closeUpload();renderMain();
+}
+
+// ════════════════════════════════════════════════════════════════
+// STYLIST
+// ════════════════════════════════════════════════════════════════
+function renderStylist(){
+  if(STATE.garments.length<3) return `
+    <div class="screen" style="display:flex;flex-direction:column;align-items:center;text-align:center;padding:60px 24px">
+      <div style="font-size:48px;margin-bottom:16px">✨</div>
+      <h3 style="font-family:var(--serif);font-size:22px;font-weight:600;margin-bottom:8px">Cadastre mais peças</h3>
+      <p style="font-size:14px;color:var(--txS);line-height:1.6;max-width:250px">A Stylist precisa de pelo menos 3 peças para montar looks.</p>
+      <p style="font-size:13px;color:var(--txM);margin-top:12px">${STATE.garments.length} de 3 peças</p>
+    </div>`;
+
+  if(STATE.stylistPhase==='loading') return `
+    <div class="screen" style="display:flex;flex-direction:column;align-items:center;padding:60px 24px;gap:14px">
+      <div class="spinner" style="width:44px;height:44px"></div>
+      <p style="font-family:var(--serif);font-size:22px;font-weight:700">Montando seus looks</p>
+      <p style="font-size:14px;color:var(--txS)">Analisando harmonia e proporções...</p>
+    </div>`;
+
+  if(STATE.stylistPhase==='result') return renderStylistResult();
+
+  return `<div class="screen">
+    <div class="card card-p" style="margin-bottom:12px">
+      <p style="font-size:15px;font-weight:500;margin-bottom:18px;display:flex;align-items:center;gap:8px"><span style="color:var(--ac)">✦</span> Para onde você vai?</p>
+      <p style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--txS);margin-bottom:8px">Ocasião</p>
+      <div style="display:flex;flex-wrap:wrap;gap:7px;margin-bottom:18px">${chips(OPCOES.ocasiao,STATE.stylistOcasiao,'setStylistOcasiao')}</div>
+      <p style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--txS);margin-bottom:8px">Clima</p>
+      <div style="display:flex;gap:8px;margin-bottom:20px">
+        ${OPCOES.clima.map(c=>`
+          <button onclick="setStylistClima('${c}')" style="flex:1;padding:12px 4px;border-radius:12px;border:1.5px solid ${STATE.stylistClima===c?'var(--ac)':'var(--bd)'};background:${STATE.stylistClima===c?'var(--acL)':'var(--sf)'};color:${STATE.stylistClima===c?'var(--acD)':'var(--txS)'};font-size:11px;font-weight:${STATE.stylistClima===c?700:400};cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:5px;font-family:var(--sans);transition:all .15s">
+            <span style="font-size:20px">${CLIMA_ICON[c]}</span>${c}
+          </button>`).join('')}
+      </div>
+      <button class="btn-primary" ${!STATE.stylistOcasiao||!STATE.stylistClima?'disabled':''} onclick="gerarLooks()">✦ Gerar 3 Looks</button>
+    </div>
+  </div>`;
+}
+
+function renderStylistResult(){
+  const looks=STATE.stylistLooks;
+  const look=looks[STATE.stylistActive];
+  if(!look) return '';
+  const meta=MOOD_STYLE[look.humor]||{bg:'var(--sfAlt)',tx:'var(--txS)'};
+  return `<div class="screen">
+    <div style="display:flex;gap:3px;background:var(--sf);border-radius:14px;padding:4px;margin-bottom:12px;box-shadow:0 2px 8px rgba(26,20,16,.05)">
+      ${looks.map((l,i)=>`<button onclick="setStylistActive(${i})" style="flex:1;padding:10px 4px;border:none;border-radius:10px;background:${STATE.stylistActive===i?'var(--ac)':'transparent'};color:${STATE.stylistActive===i?'#FFF':'var(--txM)'};font-size:13px;font-weight:${STATE.stylistActive===i?700:400};cursor:pointer;font-family:var(--sans);transition:all .2s;display:flex;align-items:center;justify-content:center;gap:4px">Look ${i+1} ${STATE.stylistLiked.has(i)?'♥':''}</button>`).join('')}
+    </div>
+    <div class="card" style="overflow:hidden;animation:fadeUp .3s ease">
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:16px 18px 0">
+        <span style="padding:5px 14px;border-radius:20px;font-size:11px;font-weight:700;background:${meta.bg};color:${meta.tx}">${look.humor}</span>
+        <button onclick="toggleLike(${STATE.stylistActive})" style="width:38px;height:38px;border-radius:50%;border:1.5px solid ${STATE.stylistLiked.has(STATE.stylistActive)?'#E8A0A0':'var(--bd)'};background:${STATE.stylistLiked.has(STATE.stylistActive)?'#FDE8E8':'var(--sfAlt)'};color:${STATE.stylistLiked.has(STATE.stylistActive)?'#C85C5C':'var(--txM)'};font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center">
+          ${STATE.stylistLiked.has(STATE.stylistActive)?'♥':'♡'}
+        </button>
+      </div>
+      <div style="display:flex;gap:10px;padding:14px 18px;overflow-x:auto">
+        ${(look.pieces||[]).map(p=>`
+          <div style="flex-shrink:0;text-align:center">
+            <div style="width:80px;height:100px;border-radius:10px;overflow:hidden;background:var(--sfAlt);border:1px solid var(--bd);margin-bottom:6px;display:flex;align-items:center;justify-content:center">
+              ${p.imageUrl?`<img src="${p.imageUrl}" style="width:100%;height:100%;object-fit:cover" onerror="this.parentElement.innerHTML='<span style=font-size:24px>🧥</span>'">`:(p.shape?garmentSVG(p.shape,COR_HEX[p.cor],70):`<span style="font-size:24px">🧥</span>`)}
+            </div>
+            <span style="display:block;font-size:11px;font-weight:600;color:var(--tx)">${p.tipo}</span>
+            <span style="display:block;font-size:10px;color:var(--txS)">${p.cor}</span>
+          </div>`).join('')}
+      </div>
+      <div style="margin:0 18px 12px;padding:14px;background:var(--bg);border-radius:12px;border:1px solid var(--bd)">
+        <p style="font-size:14px;line-height:1.7;color:var(--tx);font-family:var(--serif);font-style:italic">${look.explicacao}</p>
+      </div>
+      <div style="margin:0 18px 18px;padding:12px 14px;background:var(--acL);border-radius:12px;display:flex;gap:10px">
+        <span style="font-size:17px;flex-shrink:0">💡</span>
+        <div>
+          <p style="font-size:10px;font-weight:700;color:var(--acD);text-transform:uppercase;letter-spacing:.8px;margin-bottom:3px">Dica da Stylist</p>
+          <p style="font-size:13px;color:var(--acD);line-height:1.5">${look.dica}</p>
+        </div>
+      </div>
+    </div>
+    <div style="display:flex;gap:10px;margin-top:12px">
+      <button class="btn-outline" style="flex:1" onclick="resetStylist()">← Nova consulta</button>
+      <button class="btn-primary" style="flex:1" onclick="gerarLooks()">↺ Refazer</button>
+    </div>
+  </div>`;
+}
+
+function setStylistOcasiao(v){STATE.stylistOcasiao=v;renderMain()}
+function setStylistClima(v){STATE.stylistClima=v;renderMain()}
+function setStylistActive(i){STATE.stylistActive=i;renderMain()}
+function resetStylist(){STATE.stylistPhase='input';STATE.stylistOcasiao='';STATE.stylistClima='';renderMain()}
+function toggleLike(i){STATE.stylistLiked.has(i)?STATE.stylistLiked.delete(i):STATE.stylistLiked.add(i);renderMain()}
+
+async function gerarLooks(){
+  STATE.stylistPhase='loading';renderMain();
+  await delay(2000);
+  const g=STATE.garments;
+  const sh=[...g].sort(()=>Math.random()-.5);
+  const exps=[
+    `Composição equilibrada para ${STATE.stylistOcasiao.toLowerCase()}. Paleta coesa — nada compete, tudo conversa. O tipo de look que parece fácil mas tem muito pensamento por trás.`,
+    `O segredo está na proporção: estrutura em cima, leveza embaixo. Ideal para clima ${STATE.stylistClima.toLowerCase()} sem abrir mão do estilo.`,
+    `Look moderno que transmite confiança sem exagero. As peças dialogam em estilo e criam uma silhueta elegante.`,
+  ];
+  const dicas=['Um cinto fino definiria a cintura e completaria o look.','Brincos médios em dourado elevariam o conjunto sem esforço.','Uma bolsa estruturada completaria a silhueta com sofisticação.'];
+  const humores=['Clássico','Casual elegante','Moderno'];
+  STATE.stylistLooks=[0,1,2].map(i=>({humor:humores[i],explicacao:exps[i],dica:dicas[i],pieces:sh.slice(i*2,i*2+3).filter(Boolean)})).filter(l=>l.pieces.length>0);
+  STATE.stylistActive=0;STATE.stylistPhase='result';renderMain();
+}
+
+// ════════════════════════════════════════════════════════════════
+// MÓDULO DE CORES
+// ════════════════════════════════════════════════════════════════
+function renderCores(){
+  return `<div style="animation:fadeUp .4s ease">
+    <div style="display:flex;gap:3px;background:var(--sf);border-bottom:1px solid var(--bd);position:sticky;top:0;z-index:10">
+      ${[['paleta','🎨 Paleta'],['harmonias','⊕ Harmonias'],['builder','▦ Builder']].map(([id,l])=>`
+        <button onclick="setCoresTab('${id}')" style="flex:1;padding:13px 4px;border:none;border-bottom:2.5px solid ${STATE.coresTab===id?'var(--ac)':'transparent'};background:none;color:${STATE.coresTab===id?'var(--ac)':'var(--txM)'};font-size:13px;font-weight:${STATE.coresTab===id?700:400};cursor:pointer;font-family:var(--sans);transition:all .2s">${l}</button>`).join('')}
+    </div>
+    <div style="padding:14px 14px 24px">
+      ${STATE.coresTab==='paleta'?renderCoresPaleta():STATE.coresTab==='harmonias'?renderCoresHarmonias():renderCoresBuilder()}
+    </div>
+  </div>`;
+}
+
+function renderCoresPaleta(){
+  const grupos=['Todos',...new Set(PANTONE.map(c=>c.grupo))];
+  const filtrados=STATE.coresGrupo==='Todos'?PANTONE:PANTONE.filter(c=>c.grupo===STATE.coresGrupo);
+  const sel=STATE.coresSelected;
+  return `
+    <div style="display:flex;gap:6px;overflow-x:auto;margin-bottom:14px;padding-bottom:4px">
+      ${grupos.map(g=>`<button class="chip ${STATE.coresGrupo===g?'on':''}" onclick="setCoresGrupo('${g}')" style="flex-shrink:0">${g}</button>`).join('')}
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:${sel?'14px':'0'}">
+      ${filtrados.map((c,i)=>`
+        <button onclick="toggleCorSel('${c.id}')" style="border-radius:12px;border:2.5px solid ${sel?.id===c.id?'var(--ac)':'transparent'};overflow:hidden;background:none;padding:0;animation:fadeUp .3s ease ${i*25}ms both;box-shadow:${sel?.id===c.id?`0 4px 14px ${c.hex}60`:'0 2px 6px rgba(0,0,0,0.06)'};cursor:pointer;transform:${sel?.id===c.id?'scale(1.04)':'scale(1)'};transition:all .2s">
+          <div style="height:64px;background:${c.hex};position:relative">${sel?.id===c.id?`<div style="position:absolute;top:5px;right:5px;width:18px;height:18px;border-radius:50%;background:rgba(255,255,255,.9);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:var(--ac)">✓</div>`:''}</div>
+          <div style="padding:7px 6px 8px;background:#FFF;text-align:left">
+            <p style="font-size:11px;font-weight:700;color:var(--tx);margin-bottom:1px;line-height:1.2">${c.nome}</p>
+            <p style="font-size:9px;color:var(--txM)">${c.grupo}</p>
+          </div>
+        </button>`).join('')}
+    </div>
+    ${sel?`
+      <div style="border-radius:16px;overflow:hidden;box-shadow:0 6px 24px ${sel.hex}40;animation:fadeUp .3s ease">
+        <div style="background:${sel.hex};padding:18px 16px 14px">
+          <p style="font-size:20px;font-weight:700;color:${textOn(sel.hex)};font-family:var(--serif);margin-bottom:2px">${sel.nome}</p>
+          <p style="font-size:12px;color:${textOn(sel.hex)};opacity:.65">${sel.hex.toUpperCase()} · ${sel.grupo}</p>
+        </div>
+        <div style="background:#FFF;padding:14px 16px">
+          <p style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--txS);margin-bottom:10px">Harmonia sugerida</p>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            ${Object.values(HARMONIAS).flatMap(h=>h.grupos).find(g=>g.includes(sel.nome))?
+              Object.values(HARMONIAS).flatMap(h=>h.grupos).find(g=>g.includes(sel.nome))
+                .map(nome=>{const c=PANTONE.find(p=>p.nome===nome);return c?`<div style="text-align:center"><div style="width:44px;height:44px;border-radius:10px;background:${c.hex};border:1px solid rgba(0,0,0,.08);margin-bottom:4px"></div><p style="font-size:9px;color:var(--txS)">${c.nome.split(' ')[0]}</p></div>`:''}).join('')
+              :'<p style="font-size:13px;color:var(--txM)">Explore as harmonias na aba ⊕</p>'}
+          </div>
+        </div>
+      </div>`:''}`;
+}
+
+function renderCoresHarmonias(){
+  const h=HARMONIAS[STATE.coresHarmonia];
+  return `
+    <div style="display:flex;gap:6px;overflow-x:auto;margin-bottom:14px;padding-bottom:4px">
+      ${Object.entries(HARMONIAS).map(([k,h])=>`<button class="chip ${STATE.coresHarmonia===k?'on':''}" onclick="setCoresHarmonia('${k}')" style="flex-shrink:0">${h.icon} ${h.label}</button>`).join('')}
+    </div>
+    <div style="background:var(--acL);border-radius:12px;padding:12px 14px;margin-bottom:14px">
+      <p style="font-size:13px;font-weight:700;color:var(--acD);margin-bottom:3px">${h.icon} ${h.label}</p>
+      <p style="font-size:12px;color:var(--acD);line-height:1.5">${h.desc}</p>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:10px">
+      ${h.grupos.map((grupo,i)=>{
+        const cores=grupo.map(n=>PANTONE.find(p=>p.nome===n)).filter(Boolean);
+        return `<div class="card" style="overflow:hidden;animation:fadeUp .3s ease ${i*60}ms both">
+          <div style="display:flex;height:52px">${cores.map(c=>`<div style="flex:1;background:${c.hex}"></div>`).join('')}</div>
+          <div style="padding:12px 14px">
+            <div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap">
+              ${cores.map(c=>`<div style="display:flex;align-items:center;gap:4px"><div style="width:12px;height:12px;border-radius:50%;background:${c.hex};border:1px solid rgba(0,0,0,.1)"></div><span style="font-size:11px;color:var(--tx);font-weight:500">${c.nome}</span></div>`).join('')}
+            </div>
+            <div style="display:flex;gap:6px">
+              ${cores.map((c,j)=>{const labels=['peça principal','segunda peça','acessório'];return `<div style="flex:1;padding:7px 5px;border-radius:9px;background:${c.hex};text-align:center"><p style="font-size:8px;font-weight:700;text-transform:uppercase;color:${textOn(c.hex)};opacity:.7;margin-bottom:1px">${labels[j]||'extra'}</p><p style="font-size:9px;font-weight:600;color:${textOn(c.hex)};line-height:1.2">${c.nome.split(' ')[0]}</p></div>`;}).join('')}
+            </div>
+          </div>
+        </div>`;
+      }).join('')}
+    </div>`;
+}
+
+function renderCoresBuilder(){
+  const bc=STATE.builderCores;
+  return `
+    <p style="font-family:var(--serif);font-size:18px;font-weight:700;margin-bottom:4px">Monte seu Color Blocking</p>
+    <p style="font-size:13px;color:var(--txS);margin-bottom:14px;line-height:1.5">Selecione 2 a 4 cores e avalie a combinação</p>
+    <div style="border-radius:16px;overflow:hidden;margin-bottom:12px;box-shadow:0 3px 16px rgba(26,20,16,.07)">
+      <div style="height:80px;display:flex">
+        ${bc.length===0?`<div style="flex:1;background:var(--sfAlt);display:flex;align-items:center;justify-content:center"><p style="font-size:13px;color:var(--txM);text-align:center">Selecione cores abaixo</p></div>`:bc.map(c=>`<div style="flex:1;background:${c.hex};display:flex;align-items:flex-end;justify-content:center;padding-bottom:7px"><p style="font-size:9px;font-weight:700;color:${textOn(c.hex)};opacity:.85;text-align:center">${c.nome.split(' ')[0]}</p></div>`).join('')}
+      </div>
+      ${STATE.builderMsg?`<div style="padding:10px 14px;background:${STATE.builderMsg.includes('✦')?'var(--acL)':'#FDE8E8'}"><p style="font-size:13px;color:${STATE.builderMsg.includes('✦')?'var(--acD)':'var(--err)'};line-height:1.5">${STATE.builderMsg}</p></div>`:''}
+    </div>
+    <div style="display:flex;gap:8px;margin-bottom:${bc.length?'12px':'14px'}">
+      <button onclick="avaliarBuilder()" ${bc.length<2?'disabled':''} class="btn-primary" style="flex:2;padding:12px;font-size:13px">Avaliar</button>
+      <button onclick="limparBuilder()" class="btn-outline" style="flex:1;padding:12px;font-size:13px">Limpar</button>
+    </div>
+    ${bc.length?`<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px">${bc.map(c=>`<button onclick="toggleBuilder('${c.id}')" style="display:flex;align-items:center;gap:5px;padding:5px 10px 5px 7px;border-radius:20px;border:1.5px solid var(--ac);background:var(--acL);cursor:pointer"><div style="width:14px;height:14px;border-radius:50%;background:${c.hex};border:1px solid rgba(0,0,0,.1)"></div><span style="font-size:12px;font-weight:600;color:var(--acD)">${c.nome.split(' ')[0]}</span><span style="color:var(--acD);opacity:.6;font-size:12px">×</span></button>`).join('')}</div>`:''}
+    <p style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--txS);margin-bottom:10px">Cores Pantone SS 2026</p>
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px">
+      ${PANTONE.map((c,i)=>{const sel=bc.some(x=>x.id===c.id);return `<button onclick="toggleBuilder('${c.id}')" style="border-radius:10px;border:2px solid ${sel?'var(--ac)':'transparent'};overflow:hidden;background:none;padding:0;cursor:pointer;transform:${sel?'scale(1.06)':'scale(1)'};transition:all .15s;box-shadow:${sel?`0 3px 10px ${c.hex}50`:'0 1px 4px rgba(0,0,0,.05)'};animation:fadeUp .3s ease ${i*18}ms both">
+        <div style="height:46px;background:${c.hex};position:relative">${sel?`<div style="position:absolute;inset:0;background:rgba(0,0,0,.15);display:flex;align-items:center;justify-content:center"><span style="font-size:14px;font-weight:700;color:#FFF">✓</span></div>`:''}</div>
+        <div style="padding:4px 3px 5px;background:#FFF"><p style="font-size:9px;font-weight:600;color:var(--tx);line-height:1.2;text-align:center">${c.nome.split(' ')[0]}</p></div>
+      </button>`;}).join('')}
+    </div>`;
+}
+
+function setCoresTab(t){STATE.coresTab=t;renderMain()}
+function setCoresGrupo(g){STATE.coresGrupo=g;renderMain()}
+function setCoresHarmonia(h){STATE.coresHarmonia=h;renderMain()}
+function toggleCorSel(id){const c=PANTONE.find(p=>p.id===id);STATE.coresSelected=STATE.coresSelected?.id===id?null:c;renderMain()}
+function toggleBuilder(id){
+  const c=PANTONE.find(p=>p.id===id);
+  if(!c)return;
+  if(STATE.builderCores.some(x=>x.id===id)){STATE.builderCores=STATE.builderCores.filter(x=>x.id!==id);}
+  else if(STATE.builderCores.length<4){STATE.builderCores.push(c);}
+  else{STATE.builderMsg='Máximo 4 cores';setTimeout(()=>{STATE.builderMsg='';renderMain()},1500);}
+  renderMain();
+}
+function limparBuilder(){STATE.builderCores=[];STATE.builderMsg='';renderMain()}
+function avaliarBuilder(){
+  const bc=STATE.builderCores;if(bc.length<2){STATE.builderMsg='Selecione pelo menos 2 cores';renderMain();return;}
+  const grupos=bc.map(c=>c.grupo),uniq=[...new Set(grupos)];
+  let msg='';
+  if(uniq.length===1) msg='✦ MONOCROMÁTICO — elegância máxima. Varie as texturas para criar profundidade.';
+  else if(grupos.includes('Neutro')&&uniq.length===2) msg=`✦ Neutro + Cor — look certeiro. ${bc.find(c=>c.grupo!=='Neutro')?.nome} é seu ponto focal.`;
+  else if(uniq.length>=3&&!grupos.includes('Neutro')) msg=`✦ COLOR BLOCKING SS 2026! ${bc.length} blocos de cor. Use peças sólidas e acessórios neutros.`;
+  else msg='✦ Combinação harmoniosa. Deixe uma cor dominar (70%) e a outra aparecer (30%).';
+  STATE.builderMsg=msg;renderMain();
+}
+
+// ════════════════════════════════════════════════════════════════
+// ONBOARDING RÁPIDO
+// ════════════════════════════════════════════════════════════════
+function renderOnboarding(){
+  if(STATE.onbStep==='intro') return renderOnbIntro();
+  if(STATE.onbStep==='summary') return renderOnbSummary();
+  return renderOnbPick();
+}
+
+function renderOnbIntro(){
+  return `<div class="screen" style="animation:fadeUp .4s ease">
+    <div style="background:linear-gradient(145deg,#1E1612,#5C3020);border-radius:18px;padding:32px 22px 28px;margin-bottom:16px;position:relative;overflow:hidden">
+      <div style="position:absolute;top:-60px;right:-60px;width:180px;height:180px;border-radius:50%;border:1px solid rgba(184,130,90,.2)"></div>
+      <p style="font-size:10px;letter-spacing:2px;text-transform:uppercase;color:rgba(255,255,255,.4);margin-bottom:10px">Início Rápido</p>
+      <h2 style="font-family:var(--serif);font-size:28px;font-weight:700;color:#FFF;line-height:1.2;margin-bottom:10px">Monte seu guarda-roupa em 2 minutos</h2>
+      <p style="font-size:14px;color:rgba(255,255,255,.6);line-height:1.6">Sem precisar de fotos agora — escolha suas peças básicas e as cores que você tem.</p>
+    </div>
+    ${[['✦','Peças pré-desenhadas','Silhuetas prontas para você reconhecer na hora'],
+       ['✦','Escolha as suas cores','Uma calça pode ser preta E jeans — são peças diferentes'],
+       ['✦','Complete com fotos depois','A qualquer momento adicione suas fotos reais']].map(([ic,t,d])=>`
+      <div class="card card-p" style="margin-bottom:10px;display:flex;gap:12px;align-items:flex-start">
+        <span style="color:var(--ac);font-size:16px;line-height:1.3;flex-shrink:0">${ic}</span>
+        <div><p style="font-size:14px;font-weight:600;margin-bottom:3px">${t}</p><p style="font-size:12px;color:var(--txS);line-height:1.5">${d}</p></div>
+      </div>`).join('')}
+    <button class="btn-primary" style="margin-top:6px" onclick="STATE.onbStep='pick';renderMain()">Começar →</button>
+    <button class="btn-ghost" style="width:100%;padding:12px;margin-top:8px;text-align:center" onclick="goTab('wardrobe')">Pular — adicionar fotos depois</button>
+  </div>`;
+}
+
+function renderOnbPick(){
+  const total=Object.keys(STATE.onbSelecoes).length;
+  const catPecas=CATALOG.filter(p=>p.cat===STATE.onbCatAtiva);
+  return `<div style="animation:fadeUp .4s ease">
+    <div style="background:var(--sf);border-bottom:1px solid var(--bd);padding:12px 14px 10px;position:sticky;top:0;z-index:10">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+        <div>
+          <p style="font-size:16px;font-weight:700;color:var(--tx)">Suas peças básicas</p>
+          <p style="font-size:11px;color:var(--txS)">Toque para escolher a cor</p>
+        </div>
+        ${total>0?`<div style="background:var(--acL);border-radius:20px;padding:5px 12px;display:flex;align-items:center;gap:4px"><span style="font-family:var(--serif);font-size:18px;font-weight:700;color:var(--ac)">${total}</span><span style="font-size:10px;color:var(--acD);font-weight:600">peças</span></div>`:''}
+      </div>
+      <div style="display:flex;gap:6px;overflow-x:auto;padding-bottom:2px">
+        ${CATS.map(cat=>{const cnt=CATALOG.filter(p=>p.cat===cat).reduce((n,p)=>n+Object.keys(STATE.onbSelecoes).filter(k=>k.startsWith(p.id+'__')).length,0);return `<button class="chip ${STATE.onbCatAtiva===cat?'on':''}" onclick="setOnbCat('${cat}')" style="flex-shrink:0;display:flex;align-items:center;gap:4px">${cat}${cnt>0?`<span style="background:${STATE.onbCatAtiva===cat?'rgba(255,255,255,.3)':'var(--acL)'};color:${STATE.onbCatAtiva===cat?'#FFF':'var(--ac)'};border-radius:10px;font-size:10px;font-weight:700;padding:1px 6px">${cnt}</span>`:''}</button>`;}).join('')}
+      </div>
+    </div>
+    <div style="padding:12px 12px 100px;display:grid;grid-template-columns:repeat(2,1fr);gap:10px">
+      ${catPecas.map((peca,idx)=>{
+        const isExp=STATE.onbExpanded===peca.id;
+        const coresSel=peca.cores.filter(c=>STATE.onbSelecoes[peca.id+'__'+c]);
+        const temAlguma=coresSel.length>0;
+        return `<div style="background:var(--sf);border-radius:14px;overflow:hidden;border:2px solid ${temAlguma?'var(--ac)':'var(--bd)'};${isExp?'grid-column:span 2;':''}box-shadow:${temAlguma?`0 4px 14px rgba(184,130,90,.25)`:'0 2px 8px rgba(26,20,16,.04)'};animation:fadeUp .3s ease ${idx*45}ms both;transition:all .2s">
+          <div onclick="toggleOnbExpand('${peca.id}')" style="padding:${isExp?'14px 14px 10px':'12px'};cursor:pointer">
+            <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:8px">
+              <div><p style="font-size:13px;font-weight:700;color:var(--tx);margin-bottom:2px">${peca.label}</p><p style="font-size:10px;color:var(--txS)">${peca.estilo}</p></div>
+              <div style="display:flex;align-items:center;gap:4px">
+                ${temAlguma?`<span style="background:var(--ac);color:#FFF;border-radius:10px;font-size:10px;font-weight:700;padding:2px 7px">${coresSel.length}</span>`:''}
+                <span style="font-size:13px;color:var(--txM);transform:${isExp?'rotate(180deg)':'rotate(0deg)'};transition:transform .2s">▾</span>
+              </div>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px">
+              ${garmentSVG(peca.shape,coresSel.length>0?(COR_HEX[coresSel[coresSel.length-1]]||'#D4B896'):'#E2D5C8',isExp?68:52)}
+              ${coresSel.length>0?`<div style="display:flex;flex-wrap:wrap;gap:4px">${coresSel.map(c=>`<div style="width:16px;height:16px;border-radius:50%;background:${COR_HEX[c]||'#ccc'};border:1.5px solid rgba(0,0,0,.12)" title="${c}"></div>`).join('')}</div>`:`<p style="font-size:11px;color:var(--txM)">Toque para escolher</p>`}
+            </div>
+          </div>
+          ${isExp?`<div style="padding:0 14px 16px;animation:fadeIn .2s ease">
+            <p style="font-size:11px;font-weight:700;color:var(--txS);text-transform:uppercase;letter-spacing:.8px;margin-bottom:10px">Cores que você tem:</p>
+            <div style="display:flex;flex-wrap:wrap;gap:7px;margin-bottom:12px">
+              ${peca.cores.map(cor=>{
+                const sel=!!STATE.onbSelecoes[peca.id+'__'+cor];
+                const hex=COR_HEX[cor]||'#CCC';
+                const wh=cor==='Branco'||cor==='Off-white';
+                return `<button onclick="toggleOnbCor('${peca.id}','${cor}')" style="display:flex;align-items:center;gap:6px;padding:7px 11px 7px 7px;border-radius:20px;border:2px solid ${sel?'var(--ac)':'var(--bd)'};background:${sel?'var(--acL)':'var(--sf)'};cursor:pointer;transition:all .15s;${sel?'animation:pop .25s ease':''}">
+                  <div style="width:18px;height:18px;border-radius:50%;background:${hex};border:1.5px solid ${wh?'var(--bd)':'rgba(0,0,0,.1)'};flex-shrink:0"></div>
+                  <span style="font-size:12px;font-weight:${sel?700:400};color:${sel?'var(--acD)':'var(--txS)'};white-space:nowrap">${cor}</span>
+                  ${sel?`<span style="font-size:11px;color:var(--ac)">✓</span>`:''}
+                </button>`;
+              }).join('')}
+            </div>
+            <button onclick="toggleOnbExpand('${peca.id}')" style="width:100%;padding:9px;border-radius:9px;border:1px solid var(--bd);background:var(--sfAlt);color:var(--txS);font-size:12px;font-weight:500;font-family:var(--sans);cursor:pointer">Fechar ↑</button>
+          </div>`:''}
+        </div>`;
+      }).join('')}
+    </div>
+    <div style="position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:430px;padding:12px 14px calc(12px + env(safe-area-inset-bottom));background:linear-gradient(transparent,var(--bg) 28%);z-index:40">
+      ${total===0?`<p style="text-align:center;font-size:13px;color:var(--txM);margin-bottom:10px">Selecione pelo menos uma peça</p>`:`<p style="text-align:center;font-size:13px;color:var(--txS);margin-bottom:10px;font-weight:500"><span style="color:var(--ac);font-weight:700">${total} peça${total!==1?'s':''}</span> selecionada${total!==1?'s':''}</p>`}
+      <div style="display:flex;gap:10px">
+        <button onclick="STATE.onbStep='intro';renderMain()" style="padding:13px 18px;border-radius:50px;border:1.5px solid var(--bd);background:var(--sf);color:var(--txS);font-size:13px;font-weight:500;font-family:var(--sans);cursor:pointer">← Voltar</button>
+        <button ${total===0?'disabled':''} onclick="salvarOnboarding()" class="btn-primary" style="flex:1;padding:14px;font-size:14px">${total>0?`Salvar ${total} peças →`:'Selecione peças'}</button>
+      </div>
+    </div>
+  </div>`;
+}
+
+function renderOnbSummary(){
+  const garments=Object.values(STATE.onbSelecoes);
+  return `<div class="screen" style="animation:fadeUp .4s ease;text-align:center;padding-top:40px">
+    <div style="font-size:48px;margin-bottom:14px">🎉</div>
+    <h2 style="font-family:var(--serif);font-size:28px;font-weight:700;margin-bottom:6px">Guarda-roupa criado!</h2>
+    <p style="font-size:14px;color:var(--txS);margin-bottom:24px">${garments.length} peças adicionadas</p>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:24px;text-align:center">
+      ${garments.map((g,i)=>`
+        <div class="card" style="padding:12px 8px;animation:fadeUp .35s ease ${i*35}ms both">
+          ${garmentSVG(g.shape,COR_HEX[g.cor],54)}
+          <p style="font-size:10px;font-weight:700;color:var(--tx);margin-top:6px;line-height:1.3">${g.label}</p>
+          <p style="font-size:9px;color:var(--txS)">${g.cor}</p>
+        </div>`).join('')}
+    </div>
+    <button class="btn-outline" style="margin-bottom:10px" onclick="STATE.onbStep='pick';renderMain()">← Editar seleção</button>
+    <button class="btn-primary" onclick="goTab('wardrobe')">Ver meu guarda-roupa →</button>
+  </div>`;
+}
+
+function setOnbCat(cat){STATE.onbCatAtiva=cat;STATE.onbExpanded=null;renderMain()}
+function toggleOnbExpand(id){STATE.onbExpanded=STATE.onbExpanded===id?null:id;renderMain()}
+function toggleOnbCor(pecaId,cor){
+  const key=pecaId+'__'+cor;
+  const peca=CATALOG.find(p=>p.id===pecaId);
+  if(!peca)return;
+  if(STATE.onbSelecoes[key]){delete STATE.onbSelecoes[key];}
+  else {
+    STATE.onbSelecoes[key]={
+      id:uid(),tipo:peca.tipo,label:peca.label,cor,
+      estilo:peca.estilo,ocasioes:peca.ocasioes,
+      clima:peca.clima,shape:peca.shape,isPreset:true,
+      imageUrl:null,createdAt:new Date().toISOString()
+    };
+    STATE.onbExpanded=null;
+  }
+  renderMain();
+}
+
+function salvarOnboarding(){
+  const garments=Object.values(STATE.onbSelecoes).map(g=>({...g,id:uid()}));
+  STATE.garments=[...garments,...STATE.garments];
+  save();
+  STATE.onbStep='summary';
+  renderMain();
+}
+
+// ════════════════════════════════════════════════════════════════
+// INIT
+// ════════════════════════════════════════════════════════════════
+goTab('wardrobe');
+</script>
+</body>
+</html>
