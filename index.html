@@ -242,7 +242,7 @@ let S = {
   tab:0, garments:[], favLooks:[],
   uStep:'capture', uFile:null, uUrl:null, uCls:null,
   stPhase:'input', stOc:'', stCl:'', stLooks:[], stIdx:0,
-  malaPhase:'form', malaTrip:{destino:'',dias:'',clima:'',estilo:''}, malaPack:null,
+  malaPhase:'form', malaDestinos:[{id:1,nome:'',dias:'',clima:''}], malaOcasioes:[], malaPack:null,
   cTab:'paleta', cGrupo:'Todos', cSel:null, cHarm:'colorBlocking', bCores:[], builderMsg:'',
   wFilt:'', delId:null,
 };
@@ -418,8 +418,13 @@ function renderU(){
 }
 
 function togOc(v){if(!S.uCls)return;const oc=S.uCls.ocasioes;S.uCls.ocasioes=oc.includes(v)?oc.filter(o=>o!==v):[...oc,v];renderU()}
-async function handleFile(e){const f=e.target.files?.[0];if(!f)return;S.uFile=f;S.uUrl=URL.createObjectURL(f);await classify()}
-async function useDemo(url){S.uUrl=url;S.uFile={name:'demo.jpg',type:'image/jpeg'};await classify()}
+async function fileToBase64(file){return new Promise((res,rej)=>{const r=new FileReader();r.onload=()=>res(r.result);r.onerror=rej;r.readAsDataURL(file)})}
+async function handleFile(e){const f=e.target.files?.[0];if(!f)return;S.uFile=f;S.uUrl=await fileToBase64(f);await classify()}
+async function useDemo(url){
+  S.uUrl=url;S.uFile={name:'demo.jpg',type:'image/jpeg'};
+  // For demo urls, store the url directly (they persist)
+  await classify();
+}
 async function classify(){
   S.uStep='processing';renderU();await delay(1600);
   const tops=Object.keys(TAX).filter(k=>['TOP','BOT','FULL'].includes(TAX[k].role));
@@ -429,6 +434,7 @@ async function classify(){
 }
 function saveG(){
   if(!S.uCls)return;
+  // imageUrl is already base64 from handleFile, or a stable https:// url from demo
   S.garments.unshift({id:uid(),imageUrl:S.uUrl,...S.uCls,createdAt:new Date().toISOString()});
   save();closeU();goTab(0);
 }
@@ -583,45 +589,76 @@ function rMala(){
   if(S.malaPhase==='loading') return `<div class="scr" style="display:flex;flex-direction:column;align-items:center;padding:60px 20px;gap:14px">
     <div style="font-size:40px">🧳</div><div class="sp" style="width:40px;height:40px"></div>
     <p style="font-family:var(--serif);font-size:20px;font-weight:700">Montando sua mala</p>
-    <p style="font-size:13px;color:var(--txs)">Otimizando ${S.garments.length} peças para ${S.malaTrip.dias} dias...</p>
+    <p style="font-size:13px;color:var(--txs)">Otimizando para ${S.malaDestinos.length} destino${S.malaDestinos.length>1?'s':''}...</p>
   </div>`;
   if(S.malaPhase==='result'&&S.malaPack) return rMalaResult();
-  const t=S.malaTrip;
+
+  const totalDias = S.malaDestinos.reduce((n,d)=>n+Number(d.dias||0),0);
+
   return `<div class="scr">
-    <div style="background:linear-gradient(145deg,var(--night),#5C3020);border-radius:18px;padding:26px 20px 20px;margin-bottom:12px;position:relative;overflow:hidden">
-      <div style="position:absolute;top:-40px;right:-40px;width:130px;height:130px;border-radius:50%;border:1px solid rgba(184,130,90,.2)"></div>
-      <p style="font-size:10px;letter-spacing:2px;text-transform:uppercase;color:rgba(255,255,255,.35);margin-bottom:8px">Destino</p>
-      <input value="${t.destino}" oninput="S.malaTrip.destino=this.value" placeholder="Europa, Paris, Japão..." style="width:100%;background:none;border:none;outline:none;font-family:var(--serif);font-size:24px;font-weight:700;color:#FFF"/>
-    </div>
-    <div class="card cp" style="margin-bottom:10px">
-      <span class="fl">Duração</span>
-      <div style="display:flex;gap:8px;align-items:center">
-        <input type="number" min="1" max="90" value="${t.dias}" oninput="S.malaTrip.dias=this.value" placeholder="19" style="width:72px;padding:10px;border:1.5px solid var(--bd);border-radius:10px;font-size:22px;font-weight:700;color:var(--ac);font-family:var(--serif);outline:none;text-align:center"/>
-        <span style="font-size:14px;color:var(--txs)">dias</span>
-        ${t.dias?`<span style="margin-left:auto;font-size:11px;color:var(--ac);padding:4px 10px;background:var(--acl);border-radius:20px">~${Math.ceil(Number(t.dias)/3)} peças base</span>`:''}
+    <div style="background:linear-gradient(145deg,var(--night),#5C3020);border-radius:18px;padding:24px 20px 18px;margin-bottom:12px">
+      <p style="font-size:10px;letter-spacing:2px;text-transform:uppercase;color:rgba(255,255,255,.35);margin-bottom:8px">Destinos da viagem</p>
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+        ${S.malaDestinos.map((d,i)=>`<span style="font-family:var(--serif);font-size:${S.malaDestinos.length>2?'18px':'22px'};font-weight:700;color:#FFF">${d.nome||'Destino '+(i+1)}</span>${i<S.malaDestinos.length-1?'<span style="color:rgba(255,255,255,.4);font-size:18px">→</span>':''}`).join('')}
       </div>
+      ${totalDias>0?`<p style="font-size:12px;color:rgba(255,255,255,.4);margin-top:6px">${totalDias} dias no total</p>`:''}
     </div>
-    <div class="card cp" style="margin-bottom:10px">
-      <span class="fl">Clima esperado</span>
-      <div style="display:flex;gap:6px">
-        ${[...CLIMAS,'Variável'].map(c=>`<button onclick="S.malaTrip.clima=this.dataset.v;render()" data-v="${c}" style="flex:1;padding:10px 3px;border-radius:11px;border:1.5px solid ${t.clima===c?'var(--ac)':'var(--bd)'};background:${t.clima===c?'var(--acl)':'var(--sf)'};color:${t.clima===c?'var(--acd)':'var(--txs)'};font-size:10px;font-weight:${t.clima===c?700:400};cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:4px;font-family:var(--sans)"><span style="font-size:17px">${CI[c]||'🌦'}</span>${c}</button>`).join('')}
-      </div>
-    </div>
-    <div class="card cp" style="margin-bottom:16px">
-      <span class="fl">Seu estilo</span>
+
+    ${S.malaDestinos.map((dest,i)=>`
+      <div class="card cp" style="margin-bottom:10px;border-left:3px solid var(--ac)">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+          <div style="display:flex;align-items:center;gap:8px">
+            <span style="width:24px;height:24px;border-radius:50%;background:var(--ac);color:#FFF;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center">${i+1}</span>
+            <span class="fl" style="margin:0">Destino ${i+1}</span>
+          </div>
+          ${S.malaDestinos.length>1?`<button onclick="S.malaDestinos.splice(${i},1);render()" style="background:none;border:none;color:var(--err);font-size:18px;cursor:pointer;line-height:1">×</button>`:''}
+        </div>
+        <input value="${dest.nome}" oninput="S.malaDestinos[${i}].nome=this.value" placeholder="Ex: Amsterdam, Barcelona..." style="width:100%;padding:10px 12px;border:1.5px solid var(--bd);border-radius:10px;font-size:15px;font-weight:600;outline:none;margin-bottom:10px;font-family:var(--sans)"/>
+        <div style="display:flex;gap:8px;align-items:center;margin-bottom:10px">
+          <input type="number" min="1" max="60" value="${dest.dias}" oninput="S.malaDestinos[${i}].dias=this.value" placeholder="Dias" style="width:72px;padding:9px;border:1.5px solid var(--bd);border-radius:9px;font-size:18px;font-weight:700;color:var(--ac);font-family:var(--serif);outline:none;text-align:center"/>
+          <span style="font-size:13px;color:var(--txs)">dias</span>
+        </div>
+        <span class="fl">Clima em ${dest.nome||'este destino'}</span>
+        <div style="display:flex;gap:5px">
+          ${[...CLIMAS,'Variável'].map(c=>`<button onclick="S.malaDestinos[${i}].clima='${c}';render()" data-v="${c}" style="flex:1;padding:9px 2px;border-radius:10px;border:1.5px solid ${dest.clima===c?'var(--ac)':'var(--bd)'};background:${dest.clima===c?'var(--acl)':'var(--sf)'};color:${dest.clima===c?'var(--acd)':'var(--txs)'};font-size:9px;font-weight:${dest.clima===c?700:400};cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:3px;font-family:var(--sans)"><span style="font-size:15px">${CI[c]||'🌦'}</span>${c}</button>`).join('')}
+        </div>
+      </div>`).join('')}
+
+    <button onclick="S.malaDestinos.push({id:Date.now(),nome:'',dias:'',clima:''});render()" style="width:100%;padding:12px;border-radius:50px;border:1.5px dashed var(--ac);background:none;color:var(--ac);font-size:13px;font-weight:600;font-family:var(--sans);cursor:pointer;margin-bottom:14px">
+      + Adicionar destino
+    </button>
+
+    <div class="card cp" style="margin-bottom:14px">
+      <span class="fl">Ocasiões previstas na viagem</span>
       <div style="display:flex;flex-wrap:wrap;gap:6px">
-        ${['Clássico','Casual elegante','Moderno','Minimalista','Sofisticado'].map(e=>`<button class="chip ${t.estilo===e?'on':''}" onclick="S.malaTrip.estilo=this.dataset.v;render()" data-v="${e}">${e}</button>`).join('')}
+        ${['Passeio a pé','Museus','Restaurante/Jantar','Compras','Praia/Piscina','Balada/Noite','Transporte longo','Reunião/Trabalho','Evento especial'].map(oc=>{
+          const sel=(S.malaOcasioes||[]).includes(oc);
+          return`<button onclick="togMalaOc('${oc}')" style="padding:7px 13px;border-radius:20px;border:1.5px solid ${sel?'var(--ac)':'var(--bd)'};background:${sel?'var(--ac)':'var(--sf)'};color:${sel?'#FFF':'var(--txs)'};font-size:12px;font-weight:${sel?600:400};cursor:pointer;white-space:nowrap;font-family:var(--sans)">${oc}</button>`;
+        }).join('')}
       </div>
     </div>
-    <button class="btn" ${!t.destino||!t.dias||!t.clima?'disabled':''} onclick="gerarMala()">🧳 Montar Mala para ${t.destino||'o destino'}</button>
-    ${S.garments.length<3?`<p style="font-size:12px;color:var(--txm);text-align:center;margin-top:10px">Adicione peças ao closet primeiro (${S.garments.length}/3 mínimo)</p>`:''}
+
+    <button class="btn" ${!S.malaDestinos.every(d=>d.nome&&d.dias&&d.clima)?'disabled':''} onclick="gerarMala()">
+      🧳 Montar Mala ${S.malaDestinos.length>1?'Multidestino':'Inteligente'}
+    </button>
+    ${S.garments.length<3?`<p style="font-size:12px;color:var(--txm);text-align:center;margin-top:10px">Adicione peças ao closet primeiro (${S.garments.length}/3)</p>`:''}
   </div>`;
 }
 
+function togMalaOc(v){
+  if(!S.malaOcasioes)S.malaOcasioes=[];
+  S.malaOcasioes=S.malaOcasioes.includes(v)?S.malaOcasioes.filter(o=>o!==v):[...S.malaOcasioes,v];
+  render();
+}
+
 async function gerarMala(){
-  if(!S.malaTrip.destino||!S.malaTrip.dias||!S.malaTrip.clima)return;
+  if(!S.malaDestinos.every(d=>d.nome&&d.dias&&d.clima))return;
+  const totalDias=S.malaDestinos.reduce((n,d)=>n+Number(d.dias||0),0);
+  const destNomes=S.malaDestinos.map(d=>d.nome).join(' → ');
+  const climas=[...new Set(S.malaDestinos.map(d=>d.clima))];
+  const isMulti=S.malaDestinos.length>1;
   S.malaPhase='loading';render();await delay(2000);
-  const dias=Number(S.malaTrip.dias);
+  const dias=totalDias;
   const NEUTROS=['Preto','Branco','Off-white','Bege','Caramelo','Cinza'];
   const scored=[...S.garments].map(g=>({...g,_s:(g.ocasioes?.length||0)*3+(NEUTROS.some(n=>g.cor?.includes(n))?4:0)+(TAX[g.tipo]?.role==='LAYER'?-1:1)})).sort((a,b)=>b._s-a._s);
   const sel=scored.slice(0,Math.min(Math.ceil(dias/3)+3,scored.length));
@@ -629,16 +666,22 @@ async function gerarMala(){
   const ocs=['Passeio','Jantar','Transporte','Noite'];
   const ds=[`Para explorar ${S.malaTrip.destino} com estilo e conforto.`,`Para restaurantes — estrutura sem exagero.`,`Conforto no aeroporto/trem com estilo.`,`Look com intenção para as noites em ${S.malaTrip.destino}.`];
   S.malaPack={
-    resumo:`${sel.length} peças para ${dias} dias em ${S.malaTrip.destino}. Paleta coesa, combinações maximizadas.`,
+    resumo:`${sel.length} peças para ${dias} dias em ${destNomes}. ${isMulti?'Mala multidestino com layering para climas variados.':'Paleta coesa, combinações maximizadas.'}`,
+    destinos:S.malaDestinos,
     pecas:sel,
     looks:ocs.map((oc,i)=>({...vLooks[i%vLooks.length],ocasiao:oc,descricao:ds[i]})),
-    dicas:[`Em ${S.malaTrip.destino}, carregue sempre uma terceira peça — temperaturas mudam ao longo do dia.`,'Paleta neutra: peças que combinam entre si.','Uma bolsa de dia vira clutch à noite com o conteúdo reduzido.'],
+    dicas:isMulti?[
+      `Layering é essencial: peças que funcionam sozinhas no calor e em camadas no frio.`,
+      `A terceira peça (blazer ou cardigan) é obrigatória — transita entre ${S.malaDestinos[0]?.nome||'destino 1'} (${S.malaDestinos[0]?.clima||''}) e ${S.malaDestinos[1]?.nome||'destino 2'} (${S.malaDestinos[1]?.clima||''}).`,
+      `Paleta coesa entre os destinos: peças neutras funcionam em qualquer contexto.`,
+      `Maximize combinações: cada peça deve aparecer em pelo menos 3 looks diferentes.`,
+    ]:[`Em ${destNomes}, carregue sempre uma terceira peça — temperaturas mudam ao longo do dia.`,'Paleta neutra: peças que combinam entre si.','Uma bolsa de dia vira clutch à noite com o conteúdo reduzido.'],
   };
   S.malaPhase='result';render();
 }
 
 function rMalaResult(){
-  const p=S.malaPack,t=S.malaTrip;
+  const p=S.malaPack,t={destino:S.malaDestinos.map(d=>d.nome).join(' → '),dias:S.malaDestinos.reduce((n,d)=>n+Number(d.dias||0),0)};
   const OC={'Passeio':{icon:'🗺',bg:'#EAF0EA',tx:'#4B6B4E'},'Jantar':{icon:'🍷',bg:'#F5EAEA',tx:'#8B4A4A'},'Transporte':{icon:'✈️',bg:'#EAF0F5',tx:'#4A6B8B'},'Noite':{icon:'🌙',bg:'#EEEAF5',tx:'#4A4A6B'}};
   return `<div class="scr">
     <div style="background:var(--night);padding:18px 18px 16px;border-radius:16px;margin-bottom:12px">
